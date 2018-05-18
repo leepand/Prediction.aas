@@ -1,4 +1,2 @@
-KNN as a service.
+Client as a service.
 updated
-Generate Thrift File:
-thrift -out . -r --gen py knnThrift.thrift
