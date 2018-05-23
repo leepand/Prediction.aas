@@ -18,12 +18,43 @@
 import logging
 import random
 import json
+import yaml
 
 from commons.src.config import config_loader
 from commons.src.load_balancer.worker_info import WorkerInfo
 from random import randint
 
 import requests
+import redis
+import ast
+
+
+#from meta_info_storage import RedisStorage, DictStorage,storage
+
+#import redis
+#from meta_info_storage import RedisDict
+#from persistentdict import RedisDict
+#from dict_db import DictDbFactory, Consts
+def dict_to_redis_hset(r, hkey, dict_to_store):
+    """
+    Saves `dict_to_store` dict into Redis hash, where `hkey` is key of hash.
+    >>> import redis
+    >>> r = redis.StrictRedis(host='localhost')
+    >>> d = {'a':1, 'b':7, 'foo':'bar'}
+    >>> dict_to_redis_hset(r, 'test', d)
+    True
+    >>> r.hgetall('test')
+    {'a':1, 'b':7, 'foo':'bar'}
+    """
+    return all([r.hset(hkey, k, v) for k, v in dict_to_store.items()])
+
+r = redis.StrictRedis(host='localhost')
+
+class UserEncoder(json.JSONEncoder):  
+    def default(self, obj):  
+        if isinstance(obj, WorkerInfo):  
+            return {'host':obj.host,'port':obj.port,'local_worker_id':obj.local_worker_id,'global_worker_id':obj.global_worker_id}
+        return json.JSONEncoder.default(self, obj)
 class WorkerLoadBalancer:
     """
     A generic worker load balancer which helps in choosing a worker randomly.
@@ -35,20 +66,24 @@ class WorkerLoadBalancer:
         Returns: None
 
         """
+        
+
+
 
         #: dict model type to model to worker list map.
+
         self.model_type_to_model_to_worker_list = {}
+        
         self.session = requests.Session()
 
         #: dict model type to worker id to worker info map
         self.model_type_to_worker_id_to_worker = {}
 
         #: dict Model type to model to workers map
-        self.model_type_to_model_to_workers_map = {}
+        self.model_type_to_model_to_workers_map ={}
         self.model_info={}
         self.model_id_request_count={}
         self.worker_request_count={}
-
         # Logger instance
         self.logger = logging.getLogger(__name__)
 
@@ -81,10 +116,11 @@ class WorkerLoadBalancer:
                         model_to_worker_list[model_id] = worker_ids
 
                 model_type_to_model_to_worker_list[model_type] = model_to_worker_list
-                model_type_to_worker_id_to_worker[model_type] = worker_id_to_worker
-
-            self.model_type_to_model_to_worker_list = model_type_to_model_to_worker_list
+                model_type_to_worker_id_to_worker[model_type] = json.dumps(worker_id_to_worker,cls=UserEncoder)
             self.model_type_to_worker_id_to_worker = model_type_to_worker_id_to_worker
+            dict_to_redis_hset(r, 'model_type_to_worker_id_to_worker', self.model_type_to_worker_id_to_worker)
+            self.model_type_to_model_to_worker_list = model_type_to_model_to_worker_list
+            
             self.model_info['model_type_to_model_to_worker_list']=self.model_type_to_model_to_worker_list
             self.model_info['model_type_to_worker_id_to_worker']=self.model_type_to_worker_id_to_worker
             self.model_info['model_type_to_model_to_workers_map']=self.model_type_to_model_to_workers_map
@@ -112,14 +148,14 @@ class WorkerLoadBalancer:
         while True:   
             try: 
                 
-                random_worker=self.model_type_to_worker_id_to_worker[model_type][worker_id]
-                host_port='http://%s:%d' % (random_worker.host,random_worker.port)
+                random_worker=json.loads(self.model_type_to_worker_id_to_worker[model_type])[worker_id]
+                host_port='http://%s:%d' % (random_worker['host'],random_worker['port'])
                 resp = self.session.request('get', url=host_port, params=None, json=None, timeout=3)
                 return worker_id
             except requests.exceptions.RequestException:
                 worker_id = random.choice(worker_id_list)
                 random_worker=self.model_type_to_worker_id_to_worker[model_type][worker_id]
-                host_port='http://%s:%d' % (random_worker.host,random_worker.port)
+                host_port='http://%s:%d' % (random_worker['host'],random_worker['port'])
 
 
 
@@ -143,6 +179,7 @@ class WorkerLoadBalancer:
                 #keek end by leepand
                 #count requests by leepand
                 if model_id in self.model_id_request_count:
+                    #print 'self.model_id_request_count',self.model_id_request_count
                     if worker_id in self.model_id_request_count[model_id]:
                         self.model_id_request_count[model_id][worker_id]+=1
                     else:
@@ -151,7 +188,16 @@ class WorkerLoadBalancer:
                     self.worker_request_count[worker_id]=1
                     self.model_id_request_count[model_id]=self.worker_request_count
                 #end compute count by leepand
-                return self.model_type_to_worker_id_to_worker[model_type][worker_id]
+                #d = {'a':1, 'b':7, 'foo':'bar'}
+                dict_to_redis_hset(r, 'model_id_request_count', json.dumps(self.model_id_request_count))
+                
+                #s=r.hgetall('test')['fooq']
+                #d11 = ast.literal_eval(s)
+                #redis_load=yaml.load(r.hgetall('model_type_to_worker_id_to_worker')[model_type])
+                #for x in redis_load.keys():
+                #    if worker_id==ast.literal_eval(x):
+                #        return redis_load[x]
+                return  json.loads(r.hgetall('model_type_to_worker_id_to_worker')[model_type])[worker_id]#self.model_type_to_worker_id_to_worker[model_type][worker_id]
             else:
                 raise Exception("No worker available for the given model! ")
         else:
@@ -201,4 +247,5 @@ class WorkerLoadBalancer:
 
         """
         return False if self.model_type_to_model_to_worker_list else True
+
 

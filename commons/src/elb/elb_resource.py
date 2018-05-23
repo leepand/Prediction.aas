@@ -1,5 +1,5 @@
 #
-# Copyright 2012-2016, the original author or authors.
+# Copyright 2017-2018, the original author or authors.
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # You may not use this file except in compliance
@@ -21,6 +21,11 @@ import json
 import sys
 import time
 import os
+import redis
+r = redis.StrictRedis(host='localhost')
+import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
 
 class ElbResource:
     """
@@ -45,8 +50,9 @@ class ElbResource:
             raise falcon.HTTPInternalServerError('Internal Server Error', 'Model To Workers Map is Empty! ')
 
         resp.status = falcon.HTTP_200
-        count=self.load_balancer.model_id_request_count
-
+        #count=self.load_balancer.model_id_request_count
+        count=r.hgetall('model_id_request_count')
+        
         # TODO requests and capacity have to be calculated. They are hardcoded for now
 
         resp.body = json.dumps({'uptime':uptime, 'requests': count, 'capacity': 100})

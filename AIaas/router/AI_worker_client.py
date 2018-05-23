@@ -76,7 +76,7 @@ class AIWorkerClient:
 
         """
         try:
-            dd = common_client.DD(host=worker.host,port=worker.port)
+            dd = common_client.DD(host=worker['host'],port=worker['port'])
             data={'n':2}
             dd.set_return_format(dd.RETURN_PYTHON)
             #inf = dd.predict(data)
@@ -98,13 +98,13 @@ class AIWorkerClient:
         print 'prediction_input.model_id',prediction_input.model_id
         worker = self.load_balancer.choose_worker("AI", prediction_input.model_id)
 
-        self.logger.debug('Chosen worker_id: %s for predict ', str(worker.global_worker_id))
+        self.logger.debug('Chosen worker_id: %s for predict ', str(worker['global_worker_id']))
 
-        if worker.global_worker_id in self.worker_to_AI_client_map:
-            client= self.worker_to_AI_client_map[worker.global_worker_id]
+        if worker['global_worker_id'] in self.worker_to_AI_client_map:
+            client= self.worker_to_AI_client_map[worker['global_worker_id']]
         else:
             client = self.make_clients(worker)
-            self.worker_to_AI_client_map[worker.global_worker_id] = client
+            self.worker_to_AI_client_map[worker['global_worker_id']] = client
 
         po = None
         retry_count = 3
