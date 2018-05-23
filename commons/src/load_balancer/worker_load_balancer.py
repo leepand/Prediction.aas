@@ -150,13 +150,13 @@ class WorkerLoadBalancer:
         while True:   
             try: 
                 
-                random_worker=json.loads(self.model_type_to_worker_id_to_worker[model_type])[worker_id]
+                random_worker=json.loads(r.hgetall('model_type_to_worker_id_to_worker')[model_type])[worker_id]
                 host_port='http://%s:%d' % (random_worker['host'],random_worker['port'])
                 resp = self.session.request('get', url=host_port, params=None, json=None, timeout=3)
                 return worker_id
             except requests.exceptions.RequestException:
                 worker_id = random.choice(worker_id_list)
-                random_worker=self.model_type_to_worker_id_to_worker[model_type][worker_id]
+                random_worker=json.loads(r.hgetall('model_type_to_worker_id_to_worker')[model_type])[worker_id]
                 host_port='http://%s:%d' % (random_worker['host'],random_worker['port'])
 
 
