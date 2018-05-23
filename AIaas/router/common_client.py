@@ -229,7 +229,7 @@ class DD(object):
                 "data": data}
         return self.post(self.__urls["predict"], json=data)
     # API predict
-    def predict(self, data, use_base64=False):
+    def predict(self, inputdata, use_base64=False):
         """
         Makes prediction from data and model
         Parameters:
@@ -243,8 +243,10 @@ class DD(object):
         if use_base64:
             data = [_convert_base64(d) for d in data]
 
-
-        return self.post(self.__urls["predict"], json=data)
+        endpoint='/%s'%inputdata.model_id
+        print('endpoint',endpoint)
+        data=inputdata.data
+        return self.post(endpoint, json=data)#self.__urls["predict"]
 '''
 
 

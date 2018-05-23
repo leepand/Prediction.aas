@@ -115,7 +115,8 @@ class AIWorkerClient:
                 #predict=prediction_input.model_id
                 
                 prediction_output.status = 'Success'
-                prediction_output.result = client.predict(prediction_input.data)
+                #prediction_output.result = client.predict(prediction_input.data)
+                prediction_output.result = client.predict(prediction_input)
             except Exception as e:
                 prediction_output.result = 'None'
                 prediction_output.status = 'Failure'
