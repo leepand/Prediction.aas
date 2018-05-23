@@ -115,11 +115,13 @@ class WorkerLoadBalancer:
                     else:
                         model_to_worker_list[model_id] = worker_ids
 
-                model_type_to_model_to_worker_list[model_type] = model_to_worker_list
+                model_type_to_model_to_worker_list[model_type] = json.dumps(model_to_worker_list)
                 model_type_to_worker_id_to_worker[model_type] = json.dumps(worker_id_to_worker,cls=UserEncoder)
             self.model_type_to_worker_id_to_worker = model_type_to_worker_id_to_worker
             dict_to_redis_hset(r, 'model_type_to_worker_id_to_worker', self.model_type_to_worker_id_to_worker)
             self.model_type_to_model_to_worker_list = model_type_to_model_to_worker_list
+            #model_workerlist for chosing
+            dict_to_redis_hset(r, 'model_type_to_model_to_worker_list', self.model_type_to_model_to_worker_list)
             
             self.model_info['model_type_to_model_to_worker_list']=self.model_type_to_model_to_worker_list
             self.model_info['model_type_to_worker_id_to_worker']=self.model_type_to_worker_id_to_worker
@@ -168,10 +170,12 @@ class WorkerLoadBalancer:
         :return: a randomly chosen worker
         """
         print(model_type, model_id)
-        if self.model_type_to_model_to_worker_list.get(model_type):
-            if model_id in self.model_type_to_model_to_worker_list[model_type].keys():
-                worker_id_list = self.model_type_to_model_to_worker_list[model_type][model_id]
-                
+        #if self.model_type_to_model_to_worker_list.get(model_type):
+        if r.hgetall('model_type_to_model_to_worker_list')[model_type]:
+            #if model_id in self.model_type_to_model_to_worker_list[model_type].keys():
+            if json.loads(r.hgetall('model_type_to_model_to_worker_list')[model_type]).keys():
+                #worker_id_list = self.model_type_to_model_to_worker_list[model_type][model_id]
+                worker_id_list = json.loads(r.hgetall('model_type_to_model_to_worker_list')[model_type])[model_id]
                 #worker_id = random.choice(worker_id_list)
                 #random_worker=self.model_type_to_worker_id_to_worker[model_type][worker_id]
                 #keek alive by leepand
@@ -181,15 +185,17 @@ class WorkerLoadBalancer:
                 if model_id in self.model_id_request_count:
                     #print 'self.model_id_request_count',self.model_id_request_count
                     if worker_id in self.model_id_request_count[model_id]:
-                        self.model_id_request_count[model_id][worker_id]+=1
+                        self.worker_request_count[worker_id]+=1
+                        self.model_id_request_count[model_id]=json.dumps(self.worker_request_count)#[worker_id]+=1
                     else:
-                        self.model_id_request_count[model_id][worker_id]=1
+                        self.worker_request_count[worker_id]=1
+                        self.model_id_request_count[model_id]=json.dumps(self.worker_request_count)#[worker_id]=1
                 else:
                     self.worker_request_count[worker_id]=1
-                    self.model_id_request_count[model_id]=self.worker_request_count
+                    self.model_id_request_count[model_id]=json.dumps(self.worker_request_count)
                 #end compute count by leepand
                 #d = {'a':1, 'b':7, 'foo':'bar'}
-                dict_to_redis_hset(r, 'model_id_request_count', json.dumps(self.model_id_request_count))
+                dict_to_redis_hset(r, 'model_id_request_count', self.model_id_request_count)
                 
                 #s=r.hgetall('test')['fooq']
                 #d11 = ast.literal_eval(s)
@@ -212,7 +218,8 @@ class WorkerLoadBalancer:
         Returns: all the workers available for the given model type
 
         """
-        return self.model_type_to_worker_id_to_worker.get(model_type)
+        #return self.model_type_to_worker_id_to_worker.get(model_type)
+        return json.loads(r.hgetall('model_type_to_worker_id_to_worker')[model_type])
 
     def get_model_to_workers_list(self, model_type):
         """
