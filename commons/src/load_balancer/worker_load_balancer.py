@@ -1,5 +1,4 @@
-#
-# Copyright 2012-2016, the original author or authors.
+# Copyright 2017-2018, the original author or authors.
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # You may not use this file except in compliance
@@ -24,6 +23,7 @@ from commons.src.config import config_loader
 from commons.src.load_balancer.worker_info import WorkerInfo
 from random import randint
 
+import requests
 class WorkerLoadBalancer:
     """
     A generic worker load balancer which helps in choosing a worker randomly.
@@ -38,6 +38,7 @@ class WorkerLoadBalancer:
 
         #: dict model type to model to worker list map.
         self.model_type_to_model_to_worker_list = {}
+        self.session = requests.Session()
 
         #: dict model type to worker id to worker info map
         self.model_type_to_worker_id_to_worker = {}
@@ -106,6 +107,21 @@ class WorkerLoadBalancer:
                     self.model_type_to_model_to_worker_list[model_type][model_id].remove(worker.global_worker_id)
                     if not self.model_type_to_model_to_worker_list[model_type][model_id]:
                         self.model_type_to_model_to_worker_list[model_type].pop(model_id, None)
+    def isalive(self,model_type,worker_id_list):
+        worker_id = random.choice(worker_id_list)    
+        while True:   
+            try: 
+                
+                random_worker=self.model_type_to_worker_id_to_worker[model_type][worker_id]
+                host_port='http://%s:%d' % (random_worker.host,random_worker.port)
+                resp = self.session.request('get', url=host_port, params=None, json=None, timeout=3)
+                return worker_id
+            except requests.exceptions.RequestException:
+                worker_id = random.choice(worker_id_list)
+                random_worker=self.model_type_to_worker_id_to_worker[model_type][worker_id]
+                host_port='http://%s:%d' % (random_worker.host,random_worker.port)
+
+
 
     def choose_worker(self, model_type, model_id):
         """
@@ -119,7 +135,12 @@ class WorkerLoadBalancer:
         if self.model_type_to_model_to_worker_list.get(model_type):
             if model_id in self.model_type_to_model_to_worker_list[model_type].keys():
                 worker_id_list = self.model_type_to_model_to_worker_list[model_type][model_id]
-                worker_id = random.choice(worker_id_list)
+                
+                #worker_id = random.choice(worker_id_list)
+                #random_worker=self.model_type_to_worker_id_to_worker[model_type][worker_id]
+                #keek alive by leepand
+                worker_id=self.isalive(model_type,worker_id_list)
+                #keek end by leepand
                 #count requests by leepand
                 if model_id in self.model_id_request_count:
                     if worker_id in self.model_id_request_count[model_id]:
@@ -129,7 +150,7 @@ class WorkerLoadBalancer:
                 else:
                     self.worker_request_count[worker_id]=1
                     self.model_id_request_count[model_id]=self.worker_request_count
-                #end compute count
+                #end compute count by leepand
                 return self.model_type_to_worker_id_to_worker[model_type][worker_id]
             else:
                 raise Exception("No worker available for the given model! ")
