@@ -14,7 +14,7 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-
+from flask import jsonify
 import logging
 import random
 import json
@@ -224,7 +224,7 @@ class WorkerLoadBalancer:
         try:
             return json.loads(r.hgetall('model_type_to_worker_id_to_worker')[model_type])
         except:
-            raise AIinfoLoadError('None AI model info.')
+            return jsonify({'success':False,'message':'The specified model/version doesn\'t exist!'})
 
     def get_model_to_workers_list(self, model_type):
         """
