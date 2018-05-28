@@ -49,6 +49,8 @@ def dict_to_redis_hset(r, hkey, dict_to_store):
     return all([r.hset(hkey, k, v) for k, v in dict_to_store.items()])
 
 r = redis.StrictRedis(host='localhost')
+class AIinfoLoadError(Exception):
+    pass
 
 class UserEncoder(json.JSONEncoder):  
     def default(self, obj):  
@@ -219,7 +221,10 @@ class WorkerLoadBalancer:
 
         """
         #return self.model_type_to_worker_id_to_worker.get(model_type)
-        return json.loads(r.hgetall('model_type_to_worker_id_to_worker')[model_type])
+        try:
+            return json.loads(r.hgetall('model_type_to_worker_id_to_worker')[model_type])
+        except:
+            raise AIinfoLoadError('None AI model info.')
 
     def get_model_to_workers_list(self, model_type):
         """
@@ -253,6 +258,8 @@ class WorkerLoadBalancer:
         Returns: False if model to workers map is empty else True
 
         """
-        return False if self.model_type_to_model_to_worker_list else True
+        #return False if self.model_type_to_model_to_worker_list else True
+        return False if r.hgetall('model_type_to_model_to_worker_list') else True
+    
 
 
