@@ -58,7 +58,9 @@ class AIWorkerClient:
         self.worker_to_AI_client_map = {}
 
         worker_id_to_worker_map = self.load_balancer.get_all_workers("AI")
-
+        if 'success' in worker_id_to_worker_map:
+            if not worker_id_to_worker_map['success']:
+                worker_id_to_worker_map==False
         # Build model to AI client map
         #worker_id_to_worker_map:"{u'localhost-9091-1': <commons.src.load_balancer.worker_info.WorkerInfo instance at 0x1106af908>, u'localhost-9092-2': }"
         if worker_id_to_worker_map:
