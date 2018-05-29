@@ -1,4 +1,5 @@
-#
+# -*- coding:utf-8 -*-
+
 # Copyright 2017-2018, the original author or authors.
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -56,7 +57,7 @@ class AIWorkerClient:
         self.logger.info("AIWorkerClient Inited...")
         # self.load_balancer = WorkerLoadBalancer(model_to_worker_config_path)
         self.worker_to_AI_client_map = {}
-
+        #初始化时模型信息位空，需要特殊处理
         worker_id_to_worker_map = self.load_balancer.get_all_workers("AI")
         if 'success' in worker_id_to_worker_map:
             if not worker_id_to_worker_map['success']:
@@ -86,8 +87,8 @@ class AIWorkerClient:
             #aiurl='http://%s:%d' % (worker.host,worker.port)
             #client = common_client.Client(aiurl)
             return dd
-        except ConnectionError:
-            raise AIflyError('Unable to connect to the server, please try again later.')
+        except :
+            return None#raise AIflyError('Unable to connect to the server, please try again later.')
 
     def predict(self, prediction_input):
         """

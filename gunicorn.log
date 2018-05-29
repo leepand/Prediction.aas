@@ -25,3 +25,34 @@ TypeError: loader() takes no arguments (2 given)
 [2018-05-28 09:54:13 +0800] [23835] [INFO] Listening at: http://127.0.0.1:9018 (23835)
 [2018-05-28 09:54:13 +0800] [23835] [INFO] Using worker: sync
 [2018-05-28 09:54:13 +0800] [23836] [INFO] Booting worker with pid: 23836
+[2018-05-28 12:33:12 +0800] [24046] [INFO] Starting gunicorn 19.7.1
+[2018-05-28 12:33:12 +0800] [24046] [INFO] Listening at: http://127.0.0.1:9019 (24046)
+[2018-05-28 12:33:12 +0800] [24046] [INFO] Using worker: sync
+[2018-05-28 12:33:12 +0800] [24047] [INFO] Booting worker with pid: 24047
+[2018-05-28 13:26:35 +0800] [24046] [CRITICAL] WORKER TIMEOUT (pid:24047)
+[2018-05-28 13:26:35 +0800] [24047] [INFO] Worker exiting (pid: 24047)
+[2018-05-28 13:26:36 +0800] [24078] [INFO] Booting worker with pid: 24078
+[2018-05-28 13:26:36 +0800] [23825] [CRITICAL] WORKER TIMEOUT (pid:23826)
+[2018-05-28 13:26:36 +0800] [23835] [CRITICAL] WORKER TIMEOUT (pid:23836)
+[2018-05-28 13:26:36 +0800] [23826] [INFO] Worker exiting (pid: 23826)
+[2018-05-28 13:26:36 +0800] [23836] [INFO] Worker exiting (pid: 23836)
+[2018-05-28 13:26:36 +0800] [24080] [INFO] Booting worker with pid: 24080
+[2018-05-28 13:26:36 +0800] [24085] [INFO] Booting worker with pid: 24085
+[2018-05-28 15:29:47 +0800] [24046] [CRITICAL] WORKER TIMEOUT (pid:24078)
+[2018-05-28 15:29:47 +0800] [23825] [CRITICAL] WORKER TIMEOUT (pid:24085)
+[2018-05-28 15:29:47 +0800] [23835] [CRITICAL] WORKER TIMEOUT (pid:24080)
+[2018-05-28 15:29:48 +0800] [24078] [INFO] Worker exiting (pid: 24078)
+[2018-05-28 15:29:48 +0800] [24085] [INFO] Worker exiting (pid: 24085)
+[2018-05-28 15:29:48 +0800] [24080] [INFO] Worker exiting (pid: 24080)
+[2018-05-28 15:29:48 +0800] [24342] [INFO] Booting worker with pid: 24342
+[2018-05-28 15:29:48 +0800] [24348] [INFO] Booting worker with pid: 24348
+[2018-05-28 15:29:48 +0800] [24352] [INFO] Booting worker with pid: 24352
+[2018-05-28 16:22:05 +0800] [24046] [INFO] Handling signal: term
+[2018-05-28 16:22:05 +0800] [23835] [INFO] Handling signal: term
+[2018-05-28 16:22:05 +0800] [23825] [INFO] Handling signal: term
+[2018-05-28 16:22:05 +0800] [24352] [INFO] Worker exiting (pid: 24352)
+[2018-05-28 16:22:05 +0800] [24348] [INFO] Worker exiting (pid: 24348)
+[2018-05-28 16:22:05 +0800] [24342] [INFO] Worker exiting (pid: 24342)
+[2018-05-28 16:22:05 +0800] [24046] [INFO] Shutting down: Master
+[2018-05-28 16:22:05 +0800] [23835] [INFO] Shutting down: Master
+[2018-05-28 16:22:05 +0800] [23825] [INFO] Shutting down: Master

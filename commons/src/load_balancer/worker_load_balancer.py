@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 # Copyright 2017-2018, the original author or authors.
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-from flask import jsonify
 import logging
 import random
 import json
@@ -52,6 +52,30 @@ r = redis.StrictRedis(host='localhost')
 class AIinfoLoadError(Exception):
     pass
 
+def worklist2worker(adict):
+    """
+    for a key:[value(s)] dict, return value:[key(s)],
+    e.g. dict[doc] = [terms] --> dict[term] = [docs]
+    """
+    inv_dict = {}
+    out_dict = {}
+    tmp_dict={}
+    [inv_dict.setdefault(v, []).append(k) for k, vlist in adict.items() for v in vlist]
+    for k,v in inv_dict.items():
+        tmp={}
+        host=k.split('-')[0]
+        port= k.split('-')[1]
+        local_id=k.split('-')[2]
+        tmp['local_worker_id']=int(local_id)
+        tmp['host']=str(host)
+        tmp['port']=int(port)
+        tmp['global_worker_id']=str(k)
+        tmp_dict[str(k)]=tmp
+    if 'AI' not in out_dict:
+         out_dict['AI']=json.dumps(tmp_dict)  
+    return out_dict
+
+
 class UserEncoder(json.JSONEncoder):  
     def default(self, obj):  
         if isinstance(obj, WorkerInfo):  
@@ -68,9 +92,6 @@ class WorkerLoadBalancer:
         Returns: None
 
         """
-        
-
-
 
         #: dict model type to model to worker list map.
 
@@ -119,11 +140,45 @@ class WorkerLoadBalancer:
 
                 model_type_to_model_to_worker_list[model_type] = json.dumps(model_to_worker_list)
                 model_type_to_worker_id_to_worker[model_type] = json.dumps(worker_id_to_worker,cls=UserEncoder)
-            self.model_type_to_worker_id_to_worker = model_type_to_worker_id_to_worker
-            dict_to_redis_hset(r, 'model_type_to_worker_id_to_worker', self.model_type_to_worker_id_to_worker)
+            #self.model_type_to_worker_id_to_worker = model_type_to_worker_id_to_worker
+            #dict_to_redis_hset(r, 'model_type_to_worker_id_to_worker', self.model_type_to_worker_id_to_worker)
             self.model_type_to_model_to_worker_list = model_type_to_model_to_worker_list
             #model_workerlist for chosing
-            dict_to_redis_hset(r, 'model_type_to_model_to_worker_list', self.model_type_to_model_to_worker_list)
+            #add new model_info
+            new_model_info={}
+            
+            if r.hgetall('model_type_to_model_to_worker_list'):
+                old_model_info=r.hgetall('model_type_to_model_to_worker_list')
+                new_model_info['AI']=json.loads(old_model_info['AI'])
+                if 'AI' in new_model_info:
+                    for k2,v2 in model_to_worker_list.items():
+                        #if k2 not in new_model_info['AI']:
+                        if k2 in new_model_info['AI']:
+                            for vi in v2:
+                                new_model_info['AI'][k2].append(vi)
+                        else:
+                            new_model_info['AI'][k2]=v2
+                        new_model_info['AI'][k2]=list(set(new_model_info['AI'][k2]))
+            
+                new_model_info['AI']=json.dumps(new_model_info['AI'])
+            else:
+                new_model_info['AI']={}
+                if model_to_worker_list:  
+                    for k2,v2 in model_to_worker_list.items():
+                        new_model_info['AI'][k2]=v2
+                new_model_info['AI']=json.dumps(new_model_info['AI'])
+            
+            
+            
+            dict_to_redis_hset(r, 'model_type_to_model_to_worker_list', new_model_info)
+            #use model_list for worker info
+            if 'AI' in new_model_info:
+                worklist2worker_out=worklist2worker(json.loads(new_model_info['AI']))
+            else:
+                worklist2worker_out={'AI':None}
+            self.model_type_to_worker_id_to_worker=worklist2worker_out
+            dict_to_redis_hset(r, 'model_type_to_worker_id_to_worker', self.model_type_to_worker_id_to_worker)
+            #use model_list for worker info
             
             self.model_info['model_type_to_model_to_worker_list']=self.model_type_to_model_to_worker_list
             self.model_info['model_type_to_worker_id_to_worker']=self.model_type_to_worker_id_to_worker
@@ -151,7 +206,6 @@ class WorkerLoadBalancer:
         worker_id = random.choice(worker_id_list)    
         while True:   
             try: 
-                
                 random_worker=json.loads(r.hgetall('model_type_to_worker_id_to_worker')[model_type])[worker_id]
                 host_port='http://%s:%d' % (random_worker['host'],random_worker['port'])
                 resp = self.session.request('get', url=host_port, params=None, json=None, timeout=3)
@@ -224,7 +278,7 @@ class WorkerLoadBalancer:
         try:
             return json.loads(r.hgetall('model_type_to_worker_id_to_worker')[model_type])
         except:
-            return jsonify({'success':False,'message':'The specified model/version doesn\'t exist!'})
+            return {'success':False,'message':'The specified model/version doesn\'t exist!'}
 
     def get_model_to_workers_list(self, model_type):
         """
