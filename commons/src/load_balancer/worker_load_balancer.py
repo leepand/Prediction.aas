@@ -24,6 +24,7 @@ from commons.src.config import config_loader
 from commons.src.load_balancer.worker_info import WorkerInfo
 from random import randint
 
+from KeepAlive.Heartbeat import Heartbeat4LB
 import requests
 import redis
 import ast
@@ -203,17 +204,15 @@ class WorkerLoadBalancer:
                     if not self.model_type_to_model_to_worker_list[model_type][model_id]:
                         self.model_type_to_model_to_worker_list[model_type].pop(model_id, None)
     def isalive(self,model_type,worker_id_list):
-        worker_id = random.choice(worker_id_list)    
+        worker_id = random.choice(worker_id_list) 
         while True:   
-            try: 
-                random_worker=json.loads(r.hgetall('model_type_to_worker_id_to_worker')[model_type])[worker_id]
-                host_port='http://%s:%d' % (random_worker['host'],random_worker['port'])
-                resp = self.session.request('get', url=host_port, params=None, json=None, timeout=3)
+            random_worker=json.loads(r.hgetall('model_type_to_worker_id_to_worker')[model_type])[worker_id]
+            worker_status=heartbeat.run({'host':random_worker['host'],'port':random_worker['port'],'worker_id':worker_id,'test_type':'tcp'})
+            if worker_status=="pass":
                 return worker_id
-            except requests.exceptions.RequestException:
+            else :
                 worker_id = random.choice(worker_id_list)
                 random_worker=json.loads(r.hgetall('model_type_to_worker_id_to_worker')[model_type])[worker_id]
-                host_port='http://%s:%d' % (random_worker['host'],random_worker['port'])
 
 
 
@@ -235,7 +234,7 @@ class WorkerLoadBalancer:
                 #worker_id = random.choice(worker_id_list)
                 #random_worker=self.model_type_to_worker_id_to_worker[model_type][worker_id]
                 #keek alive by leepand
-                worker_id=self.isalive(model_type,worker_id_list)
+                worker_id=random.choice(worker_id_list)#self.isalive(model_type,worker_id_list)
                 #keek end by leepand
                 #count requests by leepand
                 if model_id in self.model_id_request_count:

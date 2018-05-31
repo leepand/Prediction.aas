@@ -20,12 +20,20 @@ import falcon
 import json
 import sys
 import time
+import datetime
 import os
 import redis
 r = redis.StrictRedis(host='localhost')
 import sys
 reload(sys)
 sys.setdefaultencoding('utf-8')
+
+
+DATETIME_FORMAT = '%m/%d %H:%M'
+
+
+def format_now():
+    return datetime.datetime.now().strftime(DATETIME_FORMAT)
 
 class ElbResource:
     """
@@ -42,7 +50,7 @@ class ElbResource:
         :param resp:
         :return:
         """
-        uptime = int(time.time()) - self.start_time
+        uptime = format_now()#int(time.time()) - self.start_time
 
         if self.load_balancer.check_if_model_to_workers_map_is_empty():
             resp.status = falcon.HTTP_500
@@ -52,9 +60,9 @@ class ElbResource:
         resp.status = falcon.HTTP_200
         #count=self.load_balancer.model_id_request_count
         count=r.hgetall('model_id_request_count')
-        
+        Alive_info=r.hgetall('server_real_time_state')
         # TODO requests and capacity have to be calculated. They are hardcoded for now
 
-        resp.body = json.dumps({'uptime':uptime, 'requests': count, 'capacity': 100})
-
+        resp.body = json.dumps({'uptime':uptime, 'requests': count, 'Alive_info': Alive_info})
+        return resp
 
